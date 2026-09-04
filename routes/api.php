@@ -103,6 +103,8 @@ Route::middleware(['auth:api', 'Is_Active', 'request.safety', 'token.timeout', '
         Route::put('tenants/{id}', [\App\Http\Controllers\Platform\TenantController::class, 'update']);
         Route::delete('tenants/{id}', [\App\Http\Controllers\Platform\TenantController::class, 'destroy']);
         Route::post('tenants/{id}/admins', [\App\Http\Controllers\Platform\TenantController::class, 'createAdmin']);
+        Route::put('tenants/{id}/admins/{userId}', [\App\Http\Controllers\Platform\TenantController::class, 'updateAdmin']);
+        Route::delete('tenants/{id}/admins/{userId}', [\App\Http\Controllers\Platform\TenantController::class, 'destroyAdmin']);
         Route::post('tenants/{id}/switch', [\App\Http\Controllers\Platform\TenantController::class, 'switchInto']);
         Route::post('switch/exit', [\App\Http\Controllers\Platform\TenantController::class, 'exitTenant']);
         Route::get('settings', [\App\Http\Controllers\Platform\PlatformSettingsController::class, 'show']);

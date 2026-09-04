@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class TenantController extends Controller
 {
@@ -50,8 +51,10 @@ class TenantController extends Controller
     public function show($id)
     {
         $tenant = Tenant::query()->findOrFail($id);
-        $admins = User::query()
+        $admins = User::withoutGlobalScopes()
             ->where('tenant_id', $tenant->id)
+            ->where('is_super_admin', false)
+            ->whereNull('deleted_at')
             ->orderBy('id')
             ->get(['id', 'firstname', 'lastname', 'email', 'username', 'statut']);
 
@@ -77,7 +80,11 @@ class TenantController extends Controller
             'module_flags' => 'nullable|array',
             'admin_firstname' => 'required|string|max:191',
             'admin_lastname' => 'required|string|max:191',
-            'admin_email' => 'required|email|unique:users,email',
+            'admin_email' => [
+                'required',
+                'email',
+                Rule::unique('users', 'email')->whereNull('deleted_at'),
+            ],
             'admin_password' => 'required|string|min:6',
         ]);
 
@@ -175,7 +182,11 @@ class TenantController extends Controller
         $data = $request->validate([
             'firstname' => 'required|string|max:191',
             'lastname' => 'required|string|max:191',
-            'email' => 'required|email|unique:users,email',
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('users', 'email')->whereNull('deleted_at'),
+            ],
             'password' => 'required|string|min:6',
         ]);
 
@@ -188,24 +199,122 @@ class TenantController extends Controller
             $role = $this->seedOwnerRole($tenant);
         }
 
-        $user = User::create([
-            'firstname' => $data['firstname'],
-            'lastname' => $data['lastname'],
-            'username' => trim($data['firstname'].' '.$data['lastname']),
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'avatar' => 'no_avatar.png',
-            'phone' => '',
-            'role_id' => $role->id,
-            'statut' => 1,
-            'is_all_warehouses' => 1,
-            'record_view' => 1,
-            'tenant_id' => $tenant->id,
-            'is_super_admin' => false,
-        ]);
-        $user->roles()->sync([$role->id]);
+        try {
+            $user = DB::transaction(function () use ($data, $role, $tenant) {
+                $user = User::withoutGlobalScopes()->create([
+                    'firstname' => $data['firstname'],
+                    'lastname' => $data['lastname'],
+                    'username' => trim($data['firstname'].' '.$data['lastname']),
+                    'email' => $data['email'],
+                    'password' => Hash::make($data['password']),
+                    'avatar' => 'no_avatar.png',
+                    'phone' => '-',
+                    'role_id' => $role->id,
+                    'statut' => 1,
+                    'is_all_warehouses' => 1,
+                    'record_view' => 1,
+                    'tenant_id' => $tenant->id,
+                    'is_super_admin' => false,
+                ]);
+
+                \App\Models\role_user::create([
+                    'user_id' => $user->id,
+                    'role_id' => $role->id,
+                ]);
+
+                return $user;
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => 'Could not create admin: '.$e->getMessage(),
+            ], 422);
+        }
 
         return response()->json(['success' => true, 'user' => $user], 201);
+    }
+
+    public function updateAdmin(Request $request, $id, $userId)
+    {
+        $tenant = Tenant::query()->findOrFail($id);
+        $user = $this->tenantAdmin($tenant, $userId);
+
+        $data = $request->validate([
+            'firstname' => 'required|string|max:191',
+            'lastname' => 'required|string|max:191',
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('users', 'email')->whereNull('deleted_at')->ignore($user->id),
+            ],
+            'password' => 'nullable|string|min:6',
+            'statut' => ['nullable', Rule::in([0, 1, '0', '1'])],
+        ]);
+
+        $willBeActive = array_key_exists('statut', $data) ? (int) $data['statut'] === 1 : (int) $user->statut === 1;
+        if (! $willBeActive && $this->isLastActiveAdmin($tenant, $user)) {
+            return response()->json([
+                'message' => 'A company needs at least one active admin.',
+            ], 422);
+        }
+
+        $user->firstname = $data['firstname'];
+        $user->lastname = $data['lastname'];
+        $user->username = trim($data['firstname'].' '.$data['lastname']);
+        $user->email = $data['email'];
+        if (array_key_exists('statut', $data)) {
+            $user->statut = (int) $data['statut'];
+        }
+        if (! empty($data['password'])) {
+            $user->password = Hash::make($data['password']);
+        }
+        $user->save();
+
+        return response()->json(['success' => true, 'user' => $user]);
+    }
+
+    public function destroyAdmin(Request $request, $id, $userId)
+    {
+        $tenant = Tenant::query()->findOrFail($id);
+        $user = $this->tenantAdmin($tenant, $userId);
+
+        if ($this->isLastActiveAdmin($tenant, $user)) {
+            return response()->json([
+                'message' => 'A company needs at least one active admin.',
+            ], 422);
+        }
+
+        $user->deleted_at = now();
+        $user->statut = 0;
+        $user->save();
+
+        return response()->json(['success' => true]);
+    }
+
+    protected function tenantAdmin(Tenant $tenant, $userId): User
+    {
+        return User::withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->where('is_super_admin', false)
+            ->whereNull('deleted_at')
+            ->findOrFail($userId);
+    }
+
+    protected function isLastActiveAdmin(Tenant $tenant, User $user): bool
+    {
+        if ((int) $user->statut !== 1) {
+            return false;
+        }
+
+        $active = User::withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->where('is_super_admin', false)
+            ->whereNull('deleted_at')
+            ->where('statut', 1)
+            ->count();
+
+        return $active <= 1;
     }
 
     protected function normalizeFlags(?array $flags): ?array
