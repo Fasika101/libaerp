@@ -30,19 +30,19 @@ class TranslationSeeder extends Seeder
             }
         }
 
-        $allTranslations = [];
         $skipped = 0;
 
         foreach ($files as $file) {
             $locale = pathinfo($file, PATHINFO_FILENAME); // 'en', 'ar', etc.
             $translations = require $file;
+            $rows = [];
 
             foreach ($translations as $key => $value) {
                 if (isset($customized[$locale . "\0" . $key])) {
                     $skipped++;
                     continue;
                 }
-                $allTranslations[] = [
+                $rows[] = [
                     'locale' => $locale,
                     'key' => $key,
                     'value' => $value,
@@ -51,14 +51,16 @@ class TranslationSeeder extends Seeder
                     'updated_at' => now(),
                 ];
             }
-        }
 
-        foreach (array_chunk($allTranslations, 1000) as $chunk) {
-            DB::table('translations')->upsert(
-                $chunk,
-                ['locale', 'key'],
-                ['value', 'is_default', 'updated_at']
-            );
+            foreach (array_chunk($rows, 1000) as $chunk) {
+                DB::table('translations')->upsert(
+                    $chunk,
+                    ['locale', 'key'],
+                    ['value', 'is_default', 'updated_at']
+                );
+            }
+
+            unset($translations, $rows);
         }
 
         if ($skipped > 0) {

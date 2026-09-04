@@ -45,6 +45,8 @@ export const useAuthStore = defineStore('auth', {
         moduleEnabled: s => key => isModuleEnabled(s.user && s.user.module_flags, key),
         isSuperAdmin: s => !!(s.user && s.user.is_super_admin),
         tenant: s => (s.user && s.user.tenant) || null,
+        // Company the super admin has "entered" (null when browsing the platform).
+        actingTenant: s => (s.user && s.user.acting_tenant) || null,
         // Global export defaults (System Settings → Export). Missing keys keep
         // the historical behavior: full data, totals on, landscape, plain names.
         exportSettings: s => ({

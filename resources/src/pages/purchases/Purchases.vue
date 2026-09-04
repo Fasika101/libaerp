@@ -247,6 +247,9 @@
           <a-col :span="12">
             <a-form-item :label="$t('Account')">
               <a-select v-model:value="payForm.account_id" allow-clear :placeholder="$t('Choose_Account')" :options="accountOptions" />
+              <a-typography-text v-if="selectedAccountBalance !== null" type="secondary" style="font-size: 12px; display: block">
+                {{ $t('Available_balance') }}: {{ money(selectedAccountBalance) }}
+              </a-typography-text>
             </a-form-item>
           </a-col>
           <a-col :span="12">
@@ -401,8 +404,25 @@ const paymentMethodOptions = computed(() =>
   (crud.payload.value?.payment_methods || []).map(m => ({ value: m.id, label: m.name }))
 );
 const accountOptions = computed(() =>
-  (crud.payload.value?.accounts || []).map(a => ({ value: a.id, label: a.account_name }))
+  (crud.payload.value?.accounts || []).map(a => ({
+    value: a.id,
+    label: `${a.account_name} (${money(a.balance)})`,
+  }))
 );
+
+function accountAvailable(accountId) {
+  if (!accountId) return null;
+  const acc = (crud.payload.value?.accounts || []).find(a => a.id === accountId);
+  if (!acc) return 0;
+  let bal = Number(acc.balance) || 0;
+  // Editing this payment credits the old amount back before the new debit.
+  if (payEditing.value && payEditing.value.account_id === accountId) {
+    bal += Number(payEditing.value.montant) || 0;
+  }
+  return bal;
+}
+
+const selectedAccountBalance = computed(() => accountAvailable(payForm.value.account_id));
 const statusOptions = computed(() => PURCHASE_STATUSES.map(s => ({ value: s.value, label: t(s.key) })));
 const paymentStatusOptions = computed(() => PAYMENT_STATUSES.map(s => ({ value: s.value, label: t(s.key) })));
 
@@ -586,7 +606,7 @@ function openAddPayment(record) {
     date: dayjs().format('YYYY-MM-DD'),
     montant: roundMoney(record.due),
     received_amount: roundMoney(record.due),
-    payment_method_id: 2,
+    payment_method_id: paymentMethodOptions.value[0]?.value,
     account_id: undefined,
     notes: '',
   };
@@ -622,6 +642,15 @@ async function submitPayment() {
     message.warning(t('Paying_amount_is_greater_than_Grand_Total'));
     return;
   }
+  if (f.account_id) {
+    const available = accountAvailable(f.account_id);
+    if (available !== null && montant > available + 1e-9) {
+      message.error(t('Not_enough_account_balance') === 'Not_enough_account_balance'
+        ? 'Not enough balance on that account'
+        : t('Not_enough_account_balance'));
+      return;
+    }
+  }
   paySaving.value = true;
   const body = {
     purchase_id: activePurchase.value.id,
@@ -631,7 +660,7 @@ async function submitPayment() {
     change: payChange.value.toFixed(2),
     payment_method_id: f.payment_method_id,
     account_id: f.account_id || null,
-    notes: f.notes,
+    notes: f.notes || '',
   };
   try {
     if (payEditing.value) {

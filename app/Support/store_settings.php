@@ -22,7 +22,10 @@ if (! function_exists('tenant_settings')) {
     {
         $id = $tenantId ?? TenantContext::id();
         if (! $id) {
-            return Setting::withoutGlobalScopes()->orderBy('id')->first();
+            // No tenant context: prefer the platform-level row (tenant_id NULL,
+            // managed by the super admin) before falling back to the oldest row.
+            return Setting::withoutGlobalScopes()->whereNull('tenant_id')->first()
+                ?? Setting::withoutGlobalScopes()->orderBy('id')->first();
         }
 
         return Setting::withoutGlobalScopes()->where('tenant_id', $id)->first();

@@ -22,13 +22,33 @@ class DashboardController extends Controller
                 'journals_30d' => 0,
                 'income_30d' => 0.0,
                 'expense_30d' => 0.0,
+                'bank_total' => 0.0,
             ],
             'chart' => [
                 'labels' => [],
                 'income' => [],
                 'expense' => [],
             ],
+            'bank_accounts' => [],
         ];
+
+        // Cash / bank accounts (the ones used on sale & purchase payments).
+        if (Schema::hasTable('accounts')) {
+            $banks = Account::query()
+                ->whereNull('deleted_at')
+                ->orderBy('account_name')
+                ->get(['id', 'account_num', 'account_name', 'balance']);
+
+            $result['bank_accounts'] = $banks->map(function ($a) {
+                return [
+                    'id' => $a->id,
+                    'account_num' => $a->account_num,
+                    'account_name' => $a->account_name,
+                    'balance' => round((float) $a->balance, 2),
+                ];
+            })->values()->all();
+            $result['kpi']['bank_total'] = round((float) $banks->sum('balance'), 2);
+        }
 
         $requiredTables = [
             'acc_chart_of_accounts',

@@ -17,6 +17,7 @@
 export const MIGRATED_ROUTES = {
     '/app/dashboard': '/dashboard',
     '/app/platform/tenants': '/platform/tenants',
+    '/app/platform/settings': '/platform/settings',
     '/app/products/store': '/products/create',
     '/app/products/list': '/products',
     '/app/products/count_stock': '/products/count-stock',

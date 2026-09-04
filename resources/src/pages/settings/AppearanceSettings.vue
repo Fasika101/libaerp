@@ -72,11 +72,11 @@
               <a-space>
                 <input
                   type="color"
-                  :value="setting.login_bg_color || '#4f46e5'"
+                  :value="setting.login_bg_color || '#0f766e'"
                   style="width: 48px; height: 32px; padding: 2px; border: 1px solid #d9d9d9; border-radius: 6px; background: transparent; cursor: pointer"
                   @input="e => (setting.login_bg_color = e.target.value)"
                 />
-                <a-input v-model:value="setting.login_bg_color" placeholder="#4f46e5" style="width: 130px" />
+                <a-input v-model:value="setting.login_bg_color" placeholder="#0f766e" style="width: 130px" />
                 <a-button v-if="setting.login_bg_color" @click="setting.login_bg_color = null">{{ $t('Reset') }}</a-button>
               </a-space>
             </a-form-item>

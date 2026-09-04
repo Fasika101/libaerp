@@ -1454,7 +1454,10 @@ class SettingsController extends Controller
     {
         $this->authorizeForUser($request->user('api'), 'appearance_settings', Setting::class);
 
-        $settings = Setting::where('deleted_at', '=', null)->first();
+        // Tenant users (and acting super admins) get their company's row via the
+        // tenant scope; a super admin outside any company edits the platform row
+        // (tenant_id NULL) — the one the login page and manifest read.
+        $settings = tenant_settings() ?: Setting::where('deleted_at', '=', null)->first();
         if ($settings) {
 
             $item['id'] = $settings->id;

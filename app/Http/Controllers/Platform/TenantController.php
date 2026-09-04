@@ -141,6 +141,34 @@ class TenantController extends Controller
         return response()->json(['success' => true]);
     }
 
+    /**
+     * Super admin "enters" a company: every subsequent request is scoped to it
+     * (SetCurrentTenant reads users.acting_tenant_id), so all regular pages —
+     * settings included — operate on that company's data.
+     */
+    public function switchInto(Request $request, $id)
+    {
+        $tenant = Tenant::query()->findOrFail($id);
+        $user = $request->user('api');
+        $user->acting_tenant_id = $tenant->id;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'tenant' => ['id' => $tenant->id, 'name' => $tenant->name, 'slug' => $tenant->slug],
+        ]);
+    }
+
+    /** Leave the company and return to the global platform view. */
+    public function exitTenant(Request $request)
+    {
+        $user = $request->user('api');
+        $user->acting_tenant_id = null;
+        $user->save();
+
+        return response()->json(['success' => true]);
+    }
+
     public function createAdmin(Request $request, $id)
     {
         $tenant = Tenant::query()->findOrFail($id);

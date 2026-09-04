@@ -57,6 +57,15 @@
         />
       </a-layout-header>
 
+      <!-- Super admin inside a company: always-visible reminder + exit. -->
+      <div v-if="auth.isSuperAdmin && auth.actingTenant" class="acting-banner">
+        <span>
+          Managing company: <strong>{{ auth.actingTenant.name }}</strong>
+          — you are viewing and editing this company's data and settings.
+        </span>
+        <a-button size="small" ghost :loading="exiting" @click="exitCompany">Exit to platform</a-button>
+      </div>
+
       <!-- ================= Content ================= -->
       <a-layout-content class="content">
         <!-- Loader over the content only (sidebar + header stay put) while a
@@ -97,6 +106,7 @@ import { useUiStore } from '../stores/ui';
 import { useAuthStore } from '../stores/auth';
 import { t as tf } from '../i18n';
 import { navLoading } from '../lib/progress';
+import http from '../lib/http';
 
 const ui = useUiStore();
 const auth = useAuthStore();
@@ -154,6 +164,20 @@ const siderTheme = computed(() =>
 const year = computed(() => new Date().getFullYear());
 // System version injected as a meta tag by next.blade.php (from version.txt).
 const version = document.querySelector('meta[name="app-version"]')?.getAttribute('content') || '';
+
+// Leave the entered company: clear acting state server-side, refresh auth
+// (menu + branding recompute) and land back on the platform companies list.
+const exiting = ref(false);
+async function exitCompany() {
+  exiting.value = true;
+  try {
+    await http.post('platform/switch/exit');
+    await auth.reload();
+    router.push('/platform/tenants');
+  } finally {
+    exiting.value = false;
+  }
+}
 
 async function logout() {
   try {
@@ -309,6 +333,16 @@ async function logout() {
 .topbar--dark {
   background: #141414;
   border-bottom-color: rgba(253, 253, 253, 0.12);
+}
+.acting-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #6d28d9;
+  color: #fff;
+  font-size: 13px;
 }
 .content {
   position: relative;

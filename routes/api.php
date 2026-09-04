@@ -64,7 +64,8 @@ Route::get('/products_clean_names', 'ProductsController@cleanNames');
 Route::post('getAccessToken', 'AuthController@getAccessToken');
 
 Route::get('/get-logo-setting', function () {
-    $setting = \App\Models\Setting::first();
+    // Public endpoint (login page): platform-level row first, then fallback.
+    $setting = tenant_settings() ?: \App\Models\Setting::first();
 
     return response()->json([
         'logo' => $setting->logo ?? null,
@@ -102,6 +103,12 @@ Route::middleware(['auth:api', 'Is_Active', 'request.safety', 'token.timeout', '
         Route::put('tenants/{id}', [\App\Http\Controllers\Platform\TenantController::class, 'update']);
         Route::delete('tenants/{id}', [\App\Http\Controllers\Platform\TenantController::class, 'destroy']);
         Route::post('tenants/{id}/admins', [\App\Http\Controllers\Platform\TenantController::class, 'createAdmin']);
+        Route::post('tenants/{id}/switch', [\App\Http\Controllers\Platform\TenantController::class, 'switchInto']);
+        Route::post('switch/exit', [\App\Http\Controllers\Platform\TenantController::class, 'exitTenant']);
+        Route::get('settings', [\App\Http\Controllers\Platform\PlatformSettingsController::class, 'show']);
+        // POST (not PUT): the form carries logo/favicon files and PHP only
+        // parses multipart bodies on POST requests.
+        Route::post('settings', [\App\Http\Controllers\Platform\PlatformSettingsController::class, 'update']);
     });
 
     Route::get('/admin/store/settings', [SettingsApiController::class, 'show']);

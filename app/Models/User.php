@@ -31,7 +31,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'firstname', 'lastname', 'username', 'email', 'password', 'phone', 'statut', 'avatar', 'role_id', 'is_all_warehouses', 'record_view',
-        'tenant_id', 'is_super_admin',
+        'tenant_id', 'is_super_admin', 'acting_tenant_id',
     ];
 
     /**
@@ -56,6 +56,7 @@ class User extends Authenticatable
         'record_view' => 'boolean',
         'is_super_admin' => 'boolean',
         'tenant_id' => 'integer',
+        'acting_tenant_id' => 'integer',
     ];
 
     public function tenant()

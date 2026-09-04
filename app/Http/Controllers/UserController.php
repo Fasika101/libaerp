@@ -89,11 +89,22 @@ class UserController extends BaseController
     {
         $helpers = new Helpers;
         $user = Auth::user();
-        $settings = tenant_settings($user->is_super_admin ? null : $user->tenant_id);
-        $tenant = $user->is_super_admin ? null : ($user->tenant ?? \App\Models\Tenant::find($user->tenant_id));
 
-        // Module entitlements come from the tenant (SaaS). Super admins see all.
-        if ($user->is_super_admin) {
+        // A super admin who "entered" a company sees that company's settings,
+        // branding and module entitlements, exactly like one of its users.
+        $actingTenant = ($user->is_super_admin && $user->acting_tenant_id)
+            ? \App\Models\Tenant::find($user->acting_tenant_id)
+            : null;
+
+        $effectiveTenantId = $user->is_super_admin ? $actingTenant?->id : $user->tenant_id;
+        $settings = tenant_settings($effectiveTenantId);
+        $tenant = $user->is_super_admin
+            ? $actingTenant
+            : ($user->tenant ?? \App\Models\Tenant::find($user->tenant_id));
+
+        // Module entitlements come from the tenant (SaaS). Super admins see all
+        // unless they are acting inside a company, then its flags apply.
+        if ($user->is_super_admin && ! $actingTenant) {
             $moduleFlags = null;
         } elseif ($tenant) {
             $moduleFlags = is_array($tenant->module_flags) ? $tenant->module_flags : (
@@ -150,6 +161,12 @@ class UserController extends BaseController
                 'slug' => $tenant->slug,
                 'status' => $tenant->status,
             ] : null,
+            'acting_tenant' => $actingTenant ? [
+                'id' => $actingTenant->id,
+                'name' => $actingTenant->name,
+                'slug' => $actingTenant->slug,
+                'status' => $actingTenant->status,
+            ] : null,
         ];
 
         $permissions = $user->is_super_admin
@@ -157,7 +174,7 @@ class UserController extends BaseController
             : ($user->roles()->first()?->permissions->pluck('name')->values()->all() ?? []);
 
         $productsAlerts = 0;
-        if (! $user->is_super_admin) {
+        if (! $user->is_super_admin || $actingTenant) {
             try {
                 $productsAlerts = product_warehouse::join('products', 'product_warehouse.product_id', '=', 'products.id')
                     ->whereRaw('qte <= stock_alert')
@@ -236,7 +253,8 @@ class UserController extends BaseController
             $User->avatar = $filename;
             $User->role_id = $request['role'];
             $User->is_all_warehouses = $is_all_warehouses;
-            $User->tenant_id = $request->user('api')->tenant_id;
+            // Acting super admins create the user inside the entered company.
+            $User->tenant_id = \App\Support\TenantContext::id() ?? $request->user('api')->tenant_id;
             $User->is_super_admin = false;
             
             // Set record_view from request (default to false if not provided)

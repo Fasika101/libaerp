@@ -13,13 +13,23 @@ export const useMenuStore = defineStore('menu', {
     getters: {
         menu() {
             const auth = useAuthStore();
-            if (auth.isSuperAdmin) {
+            // A super admin browsing the platform sees only platform entries;
+            // once they "enter" a company they get its normal menu (below),
+            // scoped by that company's module flags.
+            if (auth.isSuperAdmin && !auth.actingTenant) {
                 return [
                     {
                         key: 'platform',
                         icon: 'building',
                         label: 'Companies',
                         to: '/app/platform/tenants',
+                        permissions: [],
+                    },
+                    {
+                        key: 'platform-settings',
+                        icon: 'settings',
+                        label: 'Site Settings',
+                        to: '/app/platform/settings',
                         permissions: [],
                     },
                 ];

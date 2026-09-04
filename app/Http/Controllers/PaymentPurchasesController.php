@@ -19,6 +19,7 @@ use Carbon\Carbon;
 use DB;
 use GuzzleHttp\Client as Client_guzzle;
 use GuzzleHttp\Client as Client_termi;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -202,13 +203,14 @@ class PaymentPurchasesController extends BaseController
     {
         $this->authorizeForUser($request->user('api'), 'create', PaymentPurchase::class);
 
-        if ($request['montant'] > 0) {
-            \DB::transaction(function () use ($request) {
+        $montant = (float) $request->input('montant', 0);
+        if ($montant > 0) {
+            \DB::transaction(function () use ($request, $montant) {
                 $user = Auth::user();
                 // New way: Check user's record_view field (user-level boolean)
                 // Backward compatibility: If record_view is null, fall back to role permission check
                 $view_records = $user->hasRecordView();
-                $purchase = Purchase::findOrFail($request['purchase_id']);
+                $purchase = Purchase::findOrFail($request->input('purchase_id'));
 
                 // Check If User Has Permission view All Records
                 if (! $view_records) {
@@ -216,7 +218,7 @@ class PaymentPurchasesController extends BaseController
                     $this->authorizeForUser($request->user('api'), 'check_record', $purchase);
                 }
 
-                $total_paid = $purchase->paid_amount + $request['montant'];
+                $total_paid = $purchase->paid_amount + $montant;
                 $due = $purchase->GrandTotal - $total_paid;
 
                 if ($due === 0.0 || $due < 0.0) {
@@ -227,26 +229,28 @@ class PaymentPurchasesController extends BaseController
                     $payment_statut = 'unpaid';
                 }
 
+                $accountId = $request->input('account_id') ?: null;
+                $this->assertSufficientBalance($accountId, $montant);
+
                 PaymentPurchase::create([
-                    'purchase_id' => $request['purchase_id'],
-                    'account_id' => $request['account_id'] ? $request['account_id'] : null,
+                    'purchase_id' => $request->input('purchase_id'),
+                    'account_id' => $accountId,
                     'Ref' => $this->getNumberOrder(),
-                    'date' => $request['date'],
-                    'payment_method_id' => $request['payment_method_id'],
-                    'montant' => $request['montant'],
-                    'change' => $request['change'],
-                    'notes' => $request['notes'],
+                    'date' => $request->input('date'),
+                    'payment_method_id' => $request->input('payment_method_id'),
+                    'montant' => $montant,
+                    'change' => $request->input('change', 0),
+                    'notes' => $request->input('notes'),
                     'user_id' => Auth::user()->id,
                 ]);
 
-                $account = Account::where('id', $request['account_id'])->exists();
-
-                if ($account) {
-                    // Account exists, perform the update
-                    $account = Account::find($request['account_id']);
-                    $account->update([
-                        'balance' => $account->balance - $request['montant'],
-                    ]);
+                if ($accountId) {
+                    $account = Account::find($accountId);
+                    if ($account) {
+                        $account->update([
+                            'balance' => $account->balance - $montant,
+                        ]);
+                    }
                 }
 
                 $purchase->update([
@@ -287,9 +291,17 @@ class PaymentPurchasesController extends BaseController
                 $this->authorizeForUser($request->user('api'), 'check_record', $payment);
             }
 
-            $purchase = Purchase::whereId($request['purchase_id'])->first();
+            $montant = (float) $request->input('montant', 0);
+            $accountId = $request->input('account_id') ?: null;
+
+            $creditBack = ((int) $payment->account_id === (int) $accountId)
+                ? (float) $payment->montant
+                : 0.0;
+            $this->assertSufficientBalance($accountId, $montant, $creditBack);
+
+            $purchase = Purchase::whereId($request->input('purchase_id'))->first();
             $old_total_paid = $purchase->paid_amount - $payment->montant;
-            $new_total_paid = $old_total_paid + $request['montant'];
+            $new_total_paid = $old_total_paid + $montant;
 
             $due = $purchase->GrandTotal - $new_total_paid;
             if ($due === 0.0 || $due < 0.0) {
@@ -301,35 +313,31 @@ class PaymentPurchasesController extends BaseController
             }
 
             // delete old balance
-            $account = Account::where('id', $payment->account_id)->exists();
-
-            if ($account) {
-                // Account exists, perform the update
+            if ($payment->account_id) {
                 $account = Account::find($payment->account_id);
-                $account->update([
-                    'balance' => $account->balance + $payment->montant,
-                ]);
+                if ($account) {
+                    $account->update([
+                        'balance' => $account->balance + $payment->montant,
+                    ]);
+                }
             }
 
             $payment->update([
-                'date' => $request['date'],
-                'account_id' => $request['account_id'] ? $request['account_id'] : null,
-                'payment_method_id' => $request['payment_method_id'],
-                'montant' => $request['montant'],
-                'change' => $request['change'],
-                'notes' => $request['notes'],
+                'date' => $request->input('date'),
+                'account_id' => $accountId,
+                'payment_method_id' => $request->input('payment_method_id'),
+                'montant' => $montant,
+                'change' => $request->input('change', 0),
+                'notes' => $request->input('notes'),
             ]);
 
-            // update new account
-
-            $new_account = Account::where('id', $request['account_id'])->exists();
-
-            if ($new_account) {
-                // Account exists, perform the update
-                $new_account = Account::find($request['account_id']);
-                $new_account->update([
-                    'balance' => $new_account->balance - $request['montant'],
-                ]);
+            if ($accountId) {
+                $new_account = Account::find($accountId);
+                if ($new_account) {
+                    $new_account->update([
+                        'balance' => $new_account->balance - $montant,
+                    ]);
+                }
             }
 
             $purchase->paid_amount = $new_total_paid;
@@ -399,15 +407,54 @@ class PaymentPurchasesController extends BaseController
 
     // ----------- Reference order Payment Purchases --------------\\
 
+    /**
+     * Block a purchase payment that would take the chosen account below zero.
+     * $creditBack is the amount already reserved on this account by the
+     * payment being edited (it will be refunded before the new debit).
+     */
+    protected function assertSufficientBalance($accountId, float $amount, float $creditBack = 0): void
+    {
+        if (! $accountId || $amount <= 0) {
+            return;
+        }
+
+        $account = Account::find($accountId);
+        $available = $account ? ((float) $account->balance + $creditBack) : 0.0;
+
+        if (! $account || $available + 1e-9 < $amount) {
+            throw new HttpResponseException(response()->json([
+                'success' => false,
+                'message' => 'Not enough balance on that account',
+            ], 422));
+        }
+    }
+
     public function getNumberOrder()
     {
-        $last = DB::table('payment_purchases')->latest('id')->first();
+        // Tenant-scoped: do not inherit another company's last Ref (which may
+        // not contain '_' and previously threw Undefined array key 1).
+        $last = PaymentPurchase::query()->latest('id')->first();
 
         if ($last) {
-            $item = $last->Ref;
-            $nwMsg = explode('_', $item);
-            $inMsg = $nwMsg[1] + 1;
-            $code = $nwMsg[0].'_'.$inMsg;
+            $item = (string) ($last->Ref ?? '');
+
+            if (strpos($item, '_') !== false) {
+                $nwMsg = explode('_', $item);
+                $sep = '_';
+            } elseif (strpos($item, '-') !== false) {
+                $nwMsg = explode('-', $item);
+                $sep = '-';
+            } else {
+                $nwMsg = [];
+                $sep = '_';
+            }
+
+            if (isset($nwMsg[0], $nwMsg[1]) && is_numeric($nwMsg[1])) {
+                $inMsg = $nwMsg[1] + 1;
+                $code = $nwMsg[0].$sep.$inMsg;
+            } else {
+                $code = 'INV/PR_1111';
+            }
         } else {
             $code = 'INV/PR_1111';
         }

@@ -11,6 +11,7 @@ import { createI18n } from 'vue-i18n';
 
 export const SUPPORTED_LOCALES = [
     { value: 'en', label: 'English', flag: '🇬🇧' },
+    { value: 'am', label: 'አማርኛ', flag: '🇪🇹' },
     { value: 'fr', label: 'Français', flag: '🇫🇷' },
     { value: 'es', label: 'Español', flag: '🇪🇸' },
     { value: 'ar', label: 'العربية', flag: '🇸🇦' },

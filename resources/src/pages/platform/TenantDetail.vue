@@ -6,6 +6,7 @@
         <h2 style="margin:8px 0 0">{{ tenant?.name || 'Company' }}</h2>
         <p class="muted">{{ tenant?.slug }} · {{ tenant?.status }}</p>
       </div>
+      <a-button type="primary" :loading="entering" @click="enterCompany">Enter company</a-button>
     </div>
 
     <a-row :gutter="16">
@@ -54,12 +55,15 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
 import http from '../../lib/http';
 import { TOGGLEABLE_MODULES } from '../../config/modules';
+import { useAuthStore } from '../../stores/auth';
 
 const route = useRoute();
+const router = useRouter();
+const entering = ref(false);
 const loading = ref(true);
 const saving = ref(false);
 const adding = ref(false);
@@ -109,6 +113,19 @@ async function saveFlags() {
   }
 }
 
+async function enterCompany() {
+  entering.value = true;
+  try {
+    await http.post(`platform/tenants/${route.params.id}/switch`);
+    await useAuthStore().reload();
+    router.push('/dashboard');
+  } catch (e) {
+    message.error(e?.message || 'Could not enter company');
+  } finally {
+    entering.value = false;
+  }
+}
+
 async function addAdmin() {
   adding.value = true;
   try {
@@ -130,7 +147,7 @@ onMounted(load);
 </script>
 
 <style scoped>
-.page-head { margin-bottom: 16px; }
+.page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
 .muted { color: #888; margin: 4px 0 0; }
 .mod-grid { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; max-height: 420px; overflow: auto; }
 .mod-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,.06); }

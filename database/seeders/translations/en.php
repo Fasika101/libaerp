@@ -4292,5 +4292,7 @@ return [
 'Warehouses_Tab_Help' => 'Manage your warehouses (stores/branches). Each warehouse holds its own stock, and every document — sales, purchases, transfers, adjustments — is recorded against one of them.',
 'Warehouse_Locations_Tab_Help' => 'Define rack / shelf locations inside each warehouse (e.g. Aisle 2 – Rack B). Assign them to products to show where items are physically stored.',
 'Already_Converted' => 'Converted to sale',
+'Not_enough_account_balance' => 'Not enough balance on that account',
+'Available_balance' => 'Available balance',
 
 ];

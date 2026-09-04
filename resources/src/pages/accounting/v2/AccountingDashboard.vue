@@ -18,6 +18,33 @@
     </a-row>
 
     <a-card size="small" style="margin-bottom: 16px">
+      <template #title>
+        <span>{{ $t('List_accounts') }}</span>
+      </template>
+      <template #extra>
+        <a-button type="link" size="small" @click="$router.push('/accounts')">{{ $t('View') }}</a-button>
+      </template>
+      <a-empty v-if="!bankAccounts.length" :description="$t('No_Data')" />
+      <a-list v-else :data-source="bankAccounts" item-layout="horizontal">
+        <template #renderItem="{ item }">
+          <a-list-item>
+            <a-list-item-meta>
+              <template #title>{{ item.account_name }}</template>
+              <template #description>{{ item.account_num }}</template>
+            </a-list-item-meta>
+            <span class="bank-balance" :class="{ 'is-negative': Number(item.balance) < 0 }">
+              {{ money(item.balance) }}
+            </span>
+          </a-list-item>
+        </template>
+      </a-list>
+      <div v-if="bankAccounts.length" class="bank-total">
+        <span>{{ $t('Total') }}</span>
+        <strong>{{ money(kpi.bank_total) }}</strong>
+      </div>
+    </a-card>
+
+    <a-card size="small" style="margin-bottom: 16px">
       <a-row :gutter="[12, 12]">
         <a-col v-for="link in quickLinks" :key="link.to" :xs="12" :md="8" :xl="4">
           <a-button block @click="$router.push(link.to)">{{ $t(link.label) }}</a-button>
@@ -44,9 +71,10 @@ import { useFormat } from '../../../composables/useFormat';
 import http from '../../../lib/http';
 
 const { t } = useI18n();
-const { number } = useFormat();
+const { number, money } = useFormat();
 
-const kpi = ref({ accounts: 0, journals: 0, income: 0, expense: 0 });
+const kpi = ref({ accounts: 0, journals: 0, income: 0, expense: 0, bank_total: 0 });
+const bankAccounts = ref([]);
 const chartLabels = ref([]);
 const chartSeries = ref([
   { name: 'Income', data: [] },
@@ -86,7 +114,9 @@ onMounted(async () => {
       journals: k.journals_30d || 0,
       income: k.income_30d || 0,
       expense: k.expense_30d || 0,
+      bank_total: k.bank_total || 0,
     };
+    bankAccounts.value = data.bank_accounts || [];
     chartLabels.value = chart.labels || [];
     chartSeries.value = [
       { name: t('Income_30d'), data: chart.income || [] },
@@ -96,3 +126,23 @@ onMounted(async () => {
   } catch (e) { /* dashboard stays empty */ }
 });
 </script>
+
+<style scoped>
+.bank-balance {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.bank-balance.is-negative {
+  color: #cf1322;
+}
+.bank-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 14px;
+}
+</style>
+

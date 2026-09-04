@@ -45,7 +45,9 @@ Route::get('password/find/{token}', 'PasswordResetController@find');
 // hardcoded "Stocky". Kept at /manifest.webmanifest so existing <link> tags and
 // the service worker precache list need no changes.
 Route::get('manifest.webmanifest', function () {
-    $appName = optional(\App\Models\Setting::first())->app_name ?: 'Stocky';
+    // Platform-level row first (Site Settings), then any row as fallback.
+    $appName = optional(tenant_settings())->app_name
+        ?: (optional(\App\Models\Setting::first())->app_name ?: 'Stocky');
 
     // short_name must be brief for app launchers: use the part before a "|"
     // separator if present (e.g. "Stocky | Ultimate Inventory With POS" -> "Stocky").

@@ -24,6 +24,7 @@
           </template>
           <template v-else-if="column.key === 'actions'">
             <a-space>
+              <a-button size="small" type="primary" :loading="entering === record.id" @click="enterCompany(record)">Enter</a-button>
               <a-button size="small" @click="openEdit(record)">Edit</a-button>
               <a-button size="small" @click="$router.push(`/platform/tenants/${record.id}`)">Manage</a-button>
             </a-space>
@@ -89,11 +90,15 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
 import http from '../../lib/http';
 import { TOGGLEABLE_MODULES } from '../../config/modules';
+import { useAuthStore } from '../../stores/auth';
 
+const router = useRouter();
 const loading = ref(true);
+const entering = ref(null);
 const saving = ref(false);
 const modalOpen = ref(false);
 const editing = ref(null);
@@ -196,6 +201,21 @@ async function save() {
     message.error(e?.message || 'Save failed');
   } finally {
     saving.value = false;
+  }
+}
+
+// "Enter" a company: the whole app then works on its data (banner shows the
+// way back). Auth reload swaps menu, branding and module flags to the tenant's.
+async function enterCompany(record) {
+  entering.value = record.id;
+  try {
+    await http.post(`platform/tenants/${record.id}/switch`);
+    await useAuthStore().reload();
+    router.push('/dashboard');
+  } catch (e) {
+    message.error(e?.message || 'Could not enter company');
+  } finally {
+    entering.value = null;
   }
 }
 

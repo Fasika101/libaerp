@@ -9,303 +9,148 @@
 
     {{-- PWA --}}
     <link rel="manifest" href="/manifest.webmanifest">
-    <meta name="theme-color" content="#2f3640">
+    <meta name="theme-color" content="#0b1016">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="{{ $app_settings->app_name ?? 'Stocky' }}">
     <link rel="apple-touch-icon" href="/pwa_images/pwa-icon-192.png">
 
     <title>{{ $app_settings->app_name ?? 'Stocky | Ultimate Inventory With POS' }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    @php
+      $loginAccent = '#0f766e';
+      if (!empty($app_settings->login_bg_color) && preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $app_settings->login_bg_color)) {
+          $loginAccent = $app_settings->login_bg_color;
+      }
+      $features = array_values(array_filter([
+        $app_settings->login_hero_feature_1 ?? 'Real-time inventory tracking',
+        $app_settings->login_hero_feature_2 ?? 'Multi-location POS support',
+        $app_settings->login_hero_feature_3 ?? 'Advanced reporting & analytics',
+      ]));
+    @endphp
 
     <style>
       :root {
-        --surface: #ffffff;
-        --primary: #6366f1;
-        --primary-hover: #4f46e5;
-        --primary-light: #e0e7ff;
-        --primary-glow: rgba(99, 102, 241, 0.4);
-        --text: #0f172a;
-        --text-secondary: #475569;
-        --text-muted: #94a3b8;
-        --border: #e2e8f0;
-        --border-focus: #6366f1;
-        --bg-input: #f8fafc;
-        --bg-input-focus: #ffffff;
-        --danger: #ef4444;
-        --danger-soft: rgba(239, 68, 68, 0.08);
-        --danger-border: rgba(239, 68, 68, 0.25);
-        --success: #10b981;
-        --success-soft: rgba(16, 185, 129, 0.08);
-        --success-border: rgba(16, 185, 129, 0.25);
-        --radius-sm: 10px;
-        --radius-md: 14px;
-        --radius-lg: 24px;
-        --radius-full: 999px;
-        --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-        --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
-        --shadow-lg: 0 20px 50px -12px rgba(0,0,0,0.12);
-        --shadow-xl: 0 25px 60px -15px rgba(0,0,0,0.15);
-        --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        --accent: {{ $loginAccent }};
+        --accent-hover: color-mix(in srgb, var(--accent) 82%, #000);
+        --ink: #0b1016;
+        --ink-2: #141b24;
+        --paper: #f4f1ea;
+        --paper-card: #fffcf7;
+        --text: #171412;
+        --text-secondary: #5c574e;
+        --text-muted: #8a8478;
+        --border: #e4dfd4;
+        --danger: #b42318;
+        --danger-soft: #fef3f2;
+        --danger-border: #fecdca;
+        --success: #067647;
+        --success-soft: #ecfdf3;
+        --success-border: #abefc6;
+        --radius: 12px;
+        --transition: 180ms ease;
       }
 
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
       body {
-        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
         color: var(--text);
-        background: #f0f0ff;
-        overflow-x: hidden;
+        background: var(--paper);
+        min-height: 100dvh;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
       }
 
-      /* ─── LAYOUT ─── */
       .auth-page {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: minmax(360px, 460px) 1fr;
         min-height: 100dvh;
       }
 
-      /* ─── HERO ─── */
-      .auth-hero {
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 4rem clamp(2.5rem, 6vw, 5rem);
-        background: linear-gradient(160deg, #4f46e5 0%, #6366f1 30%, #818cf8 70%, #a78bfa 100%);
-        overflow: hidden;
-      }
-
-      .hero-bg-pattern {
-        position: absolute;
-        inset: 0;
-        opacity: 0.07;
-        background-image:
-          radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px),
-          radial-gradient(circle at 80% 20%, #fff 1px, transparent 1px),
-          radial-gradient(circle at 60% 80%, #fff 1px, transparent 1px);
-        background-size: 60px 60px, 80px 80px, 40px 40px;
-      }
-
-      .hero-shape {
-        position: absolute;
-        border-radius: 50%;
-        filter: blur(60px);
-        opacity: 0.3;
-        animation: float 20s ease-in-out infinite;
-      }
-
-      .hero-shape-1 {
-        width: 400px; height: 400px;
-        background: #c4b5fd;
-        top: -100px; right: -80px;
-        animation-delay: 0s;
-      }
-
-      .hero-shape-2 {
-        width: 300px; height: 300px;
-        background: #7c3aed;
-        bottom: -60px; left: -60px;
-        animation-delay: -7s;
-      }
-
-      .hero-shape-3 {
-        width: 200px; height: 200px;
-        background: #e0e7ff;
-        top: 40%; left: 20%;
-        animation-delay: -14s;
-      }
-
-      @keyframes float {
-        0%, 100% { transform: translate(0, 0) scale(1); }
-        33% { transform: translate(30px, -20px) scale(1.05); }
-        66% { transform: translate(-20px, 20px) scale(0.95); }
-      }
-
-      .hero-content {
-        position: relative;
-        z-index: 1;
-        max-width: 440px;
-        color: #fff;
-      }
-
-      .hero-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: rgba(255,255,255,0.15);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.2);
-        border-radius: var(--radius-full);
-        padding: 0.4rem 1rem;
-        font-size: 0.8rem;
-        font-weight: 500;
-        letter-spacing: 0.02em;
-        margin-bottom: 1.5rem;
-      }
-
-      .hero-badge-dot {
-        width: 6px; height: 6px;
-        background: #34d399;
-        border-radius: 50%;
-        animation: pulse-dot 2s ease-in-out infinite;
-      }
-
-      @keyframes pulse-dot {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.5; transform: scale(1.4); }
-      }
-
-      .hero-title {
-        font-size: clamp(2rem, 4vw, 2.75rem);
-        font-weight: 800;
-        line-height: 1.15;
-        letter-spacing: -0.03em;
-        margin-bottom: 1rem;
-      }
-
-      .hero-subtitle {
-        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        color: rgba(255,255,255,0.8);
-        line-height: 1.7;
-        max-width: 380px;
-      }
-
-      .hero-features {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        margin-top: 2.5rem;
-      }
-
-      .hero-feature {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        font-size: 0.9rem;
-        color: rgba(255,255,255,0.9);
-      }
-
-      .hero-feature-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 28px; height: 28px;
-        background: rgba(255,255,255,0.15);
-        border-radius: 8px;
-        flex-shrink: 0;
-      }
-
-      .hero-feature-icon svg {
-        width: 14px; height: 14px;
-        stroke: #fff;
-        fill: none;
-        stroke-width: 2.5;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
-
-      /* ─── FORM PANEL ─── */
+      /* ─── SIGN-IN COLUMN ─── */
       .auth-panel {
         display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: clamp(1.5rem, 5vw, 4rem);
-        background: linear-gradient(180deg, #f8f9ff 0%, #f0f0ff 100%);
-      }
-
-      .auth-card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        width: 100%;
-        max-width: 420px;
-        padding: clamp(1.75rem, 4vw, 2.5rem);
-        box-shadow: var(--shadow-xl);
-        display: flex;
         flex-direction: column;
-        gap: 1.75rem;
+        justify-content: space-between;
+        padding: clamp(1.5rem, 4vw, 2.75rem);
+        background: var(--paper);
+        border-right: 1px solid var(--border);
       }
 
-      .auth-card-header {
-        text-align: center;
-      }
-
-      .auth-logo {
+      .auth-brand {
         display: flex;
-        justify-content: center;
-        margin-bottom: 1.25rem;
+        align-items: center;
+        gap: 0.75rem;
       }
 
-      .auth-logo img {
-        max-height: 46px;
+      .auth-brand img {
+        max-height: 40px;
+        max-width: 180px;
         object-fit: contain;
       }
 
-      .auth-card-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        color: var(--text);
+      .auth-main {
+        width: 100%;
+        max-width: 360px;
+        margin: 2.5rem 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
       }
 
-      .auth-card-subtitle {
-        font-size: 0.9rem;
+      .auth-heading h1 {
+        font-size: 1.85rem;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        line-height: 1.15;
+      }
+
+      .auth-heading p {
+        margin-top: 0.45rem;
         color: var(--text-secondary);
-        margin-top: 0.35rem;
-        line-height: 1.5;
+        font-size: 0.95rem;
+        line-height: 1.55;
       }
 
-      /* ─── FORM ─── */
-      .auth-form { display: flex; flex-direction: column; gap: 1.25rem; }
+      .auth-form { display: flex; flex-direction: column; gap: 1.1rem; }
 
-      .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+      .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
 
       .form-label {
-        font-size: 0.8rem;
-        font-weight: 600;
+        font-size: 0.78rem;
+        font-weight: 650;
         color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
       }
 
       .input-wrapper {
-        position: relative;
         display: flex;
         align-items: center;
-        border: 1.5px solid var(--border);
-        border-radius: var(--radius-md);
-        background: var(--bg-input);
-        transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--paper-card);
+        transition: border-color var(--transition), box-shadow var(--transition);
       }
 
       .input-wrapper:focus-within {
-        border-color: var(--border-focus);
-        background: var(--bg-input-focus);
-        box-shadow: 0 0 0 3px var(--primary-light);
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
       }
 
       .input-icon {
         display: flex;
-        align-items: center;
-        justify-content: center;
-        padding-left: 0.875rem;
+        padding-left: 0.85rem;
         color: var(--text-muted);
-        transition: color var(--transition);
-        flex-shrink: 0;
       }
 
-      .input-wrapper:focus-within .input-icon {
-        color: var(--primary);
-      }
+      .input-wrapper:focus-within .input-icon { color: var(--accent); }
 
-      .input-icon svg {
-        width: 18px; height: 18px;
+      .input-icon svg,
+      .toggle-password svg {
+        width: 17px; height: 17px;
         stroke: currentColor;
         fill: none;
         stroke-width: 1.8;
@@ -317,7 +162,7 @@
         flex: 1;
         border: none;
         background: transparent;
-        padding: 0.8rem 0.875rem;
+        padding: 0.78rem 0.8rem;
         font-size: 0.95rem;
         font-family: inherit;
         color: var(--text);
@@ -325,110 +170,71 @@
         min-width: 0;
       }
 
-      .form-input::placeholder {
-        color: var(--text-muted);
-      }
+      .form-input::placeholder { color: var(--text-muted); }
 
       .toggle-password {
-        display: flex;
-        align-items: center;
-        justify-content: center;
         border: none;
         background: none;
         padding: 0 0.75rem;
         cursor: pointer;
         color: var(--text-muted);
-        transition: color var(--transition);
       }
 
-      .toggle-password:hover {
-        color: var(--primary);
-      }
-
-      .toggle-password svg {
-        width: 18px; height: 18px;
-        stroke: currentColor;
-        fill: none;
-        stroke-width: 1.8;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
+      .toggle-password:hover { color: var(--text); }
 
       .form-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
+        gap: 0.75rem;
       }
 
       .remember-check {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.45rem;
         cursor: pointer;
         font-size: 0.85rem;
         color: var(--text-secondary);
         user-select: none;
       }
 
-      .remember-check input[type="checkbox"] {
-        width: 16px; height: 16px;
-        accent-color: var(--primary);
-        border-radius: 4px;
+      .remember-check input {
+        width: 15px; height: 15px;
+        accent-color: var(--accent);
         cursor: pointer;
       }
 
       .forgot-link {
         font-size: 0.85rem;
-        font-weight: 600;
-        color: var(--primary);
+        font-weight: 650;
+        color: var(--accent);
         text-decoration: none;
-        transition: color var(--transition);
       }
 
-      .forgot-link:hover { color: var(--primary-hover); }
+      .forgot-link:hover { text-decoration: underline; }
 
-      /* ─── BUTTON ─── */
       .auth-btn {
-        position: relative;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 0.5rem;
-        padding: 0.85rem 1.5rem;
+        gap: 0.45rem;
+        margin-top: 0.15rem;
+        padding: 0.85rem 1.25rem;
         border: none;
-        border-radius: var(--radius-md);
-        background: var(--primary);
+        border-radius: 10px;
+        background: var(--accent);
         color: #fff;
         font-size: 0.95rem;
-        font-weight: 600;
+        font-weight: 700;
         font-family: inherit;
         cursor: pointer;
-        transition: background var(--transition), box-shadow var(--transition), transform 100ms ease;
-        overflow: hidden;
-        margin-top: 0.25rem;
+        transition: background var(--transition), transform 100ms ease;
       }
 
-      .auth-btn:hover {
-        background: var(--primary-hover);
-        box-shadow: 0 4px 16px var(--primary-glow);
-      }
-
-      .auth-btn:active {
-        transform: scale(0.985);
-      }
-
-      .auth-btn:disabled {
-        cursor: not-allowed;
-        opacity: 0.8;
-      }
-
-      .auth-btn .btn-arrow {
-        transition: transform var(--transition);
-      }
-
-      .auth-btn:hover .btn-arrow {
-        transform: translateX(3px);
-      }
+      .auth-btn:hover { background: var(--accent-hover); }
+      .auth-btn:active { transform: scale(0.985); }
+      .auth-btn:disabled { cursor: not-allowed; opacity: 0.8; }
 
       .btn-loading {
         display: none;
@@ -437,7 +243,7 @@
       }
 
       .spinner {
-        width: 18px; height: 18px;
+        width: 16px; height: 16px;
         border: 2px solid rgba(255,255,255,0.3);
         border-top-color: #fff;
         border-radius: 50%;
@@ -446,69 +252,38 @@
 
       @keyframes spin { to { transform: rotate(360deg); } }
 
-      /* ─── DIVIDER ─── */
-      .auth-divider {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        color: var(--text-muted);
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-      }
-
-      .auth-divider::before,
-      .auth-divider::after {
-        content: '';
-        flex: 1;
-        height: 1px;
-        background: var(--border);
-      }
-
-      /* ─── ALERTS ─── */
       .auth-alert {
-        padding: 0.75rem 1rem;
-        border-radius: var(--radius-sm);
+        padding: 0.75rem 0.9rem;
+        border-radius: 10px;
         border: 1px solid var(--border);
-        font-size: 0.875rem;
+        font-size: 0.85rem;
         line-height: 1.5;
         display: flex;
         align-items: flex-start;
-        gap: 0.6rem;
+        gap: 0.55rem;
       }
 
-      .auth-alert ul {
-        margin: 0;
-        padding-left: 1rem;
-        list-style: none;
-      }
-
+      .auth-alert ul { margin: 0; padding-left: 1rem; list-style: none; }
       .auth-alert ul li::before {
         content: '\2022';
-        color: currentColor;
+        margin-right: 0.35rem;
         opacity: 0.5;
-        margin-right: 0.4rem;
       }
 
       .auth-alert.error {
         background: var(--danger-soft);
         border-color: var(--danger-border);
-        color: #991b1b;
+        color: #7a271a;
       }
 
       .auth-alert.success {
         background: var(--success-soft);
         border-color: var(--success-border);
-        color: #065f46;
-      }
-
-      .alert-icon {
-        flex-shrink: 0;
-        margin-top: 1px;
+        color: #085d3a;
       }
 
       .alert-icon svg {
-        width: 18px; height: 18px;
+        width: 16px; height: 16px;
         stroke: currentColor;
         fill: none;
         stroke-width: 2;
@@ -516,149 +291,274 @@
         stroke-linejoin: round;
       }
 
-      /* ─── FOOTER ─── */
       .auth-footer {
-        text-align: center;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         color: var(--text-muted);
-        padding-top: 0.5rem;
       }
 
-      /* ─── RESPONSIVE ─── */
-      @media (max-width: 1024px) {
+      /* ─── PRODUCT CANVAS ─── */
+      .auth-hero {
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: clamp(1.75rem, 4vw, 3rem);
+        color: #e8edf4;
+        background:
+          radial-gradient(900px 480px at 80% -10%, color-mix(in srgb, var(--accent) 38%, transparent), transparent 60%),
+          radial-gradient(700px 400px at -10% 110%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 55%),
+          linear-gradient(165deg, #101820 0%, var(--ink) 55%, #080c11 100%);
+      }
+
+      .auth-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+        background-size: 44px 44px;
+        mask-image: radial-gradient(ellipse at 70% 40%, #000 20%, transparent 75%);
+        pointer-events: none;
+      }
+
+      .hero-copy { position: relative; z-index: 1; max-width: 520px; }
+
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-bottom: 1rem;
+        padding: 0.28rem 0.7rem;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 999px;
+        background: rgba(255,255,255,0.06);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #d7e0ea;
+      }
+
+      .hero-badge-dot {
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background: #34d399;
+        box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.18);
+      }
+
+      .hero-title {
+        font-size: clamp(1.85rem, 3.4vw, 2.7rem);
+        font-weight: 800;
+        letter-spacing: -0.045em;
+        line-height: 1.12;
+      }
+
+      .hero-subtitle {
+        margin-top: 0.85rem;
+        max-width: 440px;
+        color: rgba(232, 237, 244, 0.72);
+        font-size: 1rem;
+        line-height: 1.65;
+      }
+
+      .preview {
+        position: relative;
+        z-index: 1;
+        margin: 2rem 0 1.5rem;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 16px;
+        background: color-mix(in srgb, var(--ink-2) 86%, var(--accent));
+        box-shadow: 0 30px 60px rgba(0,0,0,0.35);
+        overflow: hidden;
+      }
+
+      .preview-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.7rem 0.9rem;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        background: rgba(0,0,0,0.18);
+      }
+
+      .preview-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.22);
+      }
+
+      .preview-dot:first-child { background: #f87171; }
+      .preview-dot:nth-child(2) { background: #fbbf24; }
+      .preview-dot:nth-child(3) { background: #34d399; }
+
+      .preview-bar span {
+        margin-left: 0.5rem;
+        font-size: 0.72rem;
+        color: rgba(255,255,255,0.45);
+      }
+
+      .preview-body { padding: 1rem; display: grid; gap: 0.85rem; }
+
+      .preview-kpis {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.65rem;
+      }
+
+      .kpi {
+        padding: 0.7rem 0.75rem;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.06);
+      }
+
+      .kpi small {
+        display: block;
+        font-size: 0.68rem;
+        color: rgba(255,255,255,0.45);
+        margin-bottom: 0.3rem;
+      }
+
+      .kpi strong {
+        font-size: 1.05rem;
+        letter-spacing: -0.03em;
+      }
+
+      .kpi em {
+        display: block;
+        margin-top: 0.15rem;
+        font-style: normal;
+        font-size: 0.68rem;
+        color: #6ee7b7;
+      }
+
+      .preview-chart {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.4rem;
+        height: 84px;
+        padding: 0.5rem 0.25rem 0;
+      }
+
+      .bar {
+        flex: 1;
+        border-radius: 4px 4px 0 0;
+        background: color-mix(in srgb, var(--accent) 70%, #fff);
+        opacity: 0.85;
+      }
+
+      .preview-rows { display: grid; gap: 0.4rem; }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1.4fr 0.8fr 0.6fr;
+        gap: 0.5rem;
+        align-items: center;
+        font-size: 0.72rem;
+        color: rgba(255,255,255,0.7);
+      }
+
+      .row i {
+        height: 8px;
+        border-radius: 99px;
+        background: rgba(255,255,255,0.14);
+        font-style: normal;
+      }
+
+      .hero-features {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .hero-feature {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.4rem 0.7rem;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.08);
+        font-size: 0.8rem;
+        color: rgba(255,255,255,0.86);
+      }
+
+      .hero-feature svg {
+        width: 13px; height: 13px;
+        stroke: #6ee7b7;
+        fill: none;
+        stroke-width: 2.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .mobile-hero {
+        display: none;
+      }
+
+      @media (max-width: 960px) {
         .auth-page { grid-template-columns: 1fr; }
         .auth-hero { display: none; }
-        .auth-panel { min-height: 100dvh; }
-      }
-
-      @media (max-width: 640px) {
         .auth-panel {
-          padding: 1.25rem 1rem;
+          min-height: 100dvh;
+          border-right: none;
           padding-top: max(1.25rem, env(safe-area-inset-top));
           padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
-          background: #f8f9ff;
-          align-items: flex-start;
         }
-        .auth-card {
-          padding: 1.5rem 1.25rem;
-          border-radius: 18px;
-          gap: 1.25rem;
-          box-shadow: var(--shadow-md);
-          margin-top: 1rem;
+        .mobile-hero {
+          display: block;
+          margin: 1.25rem 0 0.25rem;
         }
-        .auth-logo { margin-bottom: 1rem; }
-        .auth-logo img { max-height: 40px; }
-        .auth-card-title { font-size: 1.25rem; }
-        .auth-card-subtitle { font-size: 0.85rem; }
-        .auth-form { gap: 1rem; }
-        .form-label { font-size: 0.75rem; }
-        /* iOS: 16px+ prevents auto-zoom on focus */
-        .form-input { font-size: 16px; padding: 0.75rem 0.75rem; }
-        .input-icon { padding-left: 0.75rem; }
-        .input-icon svg { width: 16px; height: 16px; }
-        .toggle-password { padding: 0 0.625rem; }
-        .auth-btn {
-          padding: 0.95rem 1.25rem;
-          font-size: 1rem;
-          min-height: 48px;
+        .mobile-hero .hero-badge { color: var(--text-secondary); background: #efeae0; border-color: var(--border); text-transform: none; letter-spacing: 0; }
+        .mobile-hero h2 {
+          margin-top: 0.6rem;
+          font-size: 1.35rem;
+          letter-spacing: -0.03em;
         }
-        .form-row {
-          flex-wrap: wrap;
-          gap: 0.5rem 1rem;
+        .mobile-hero p {
+          margin-top: 0.35rem;
+          color: var(--text-secondary);
+          font-size: 0.9rem;
+          line-height: 1.5;
         }
-        .remember-check, .forgot-link { font-size: 0.85rem; }
+        .auth-main { margin: 1.25rem 0; max-width: none; }
+        .form-input { font-size: 16px; }
+        .auth-btn { min-height: 48px; }
       }
 
-      @media (max-width: 380px) {
-        .auth-panel { padding: 1rem 0.75rem; }
-        .auth-card {
-          padding: 1.25rem 1rem;
-          border-radius: 16px;
-          gap: 1rem;
-        }
-        .auth-card-title { font-size: 1.15rem; }
+      @media (max-width: 420px) {
         .form-row {
           flex-direction: column;
           align-items: flex-start;
-          gap: 0.625rem;
         }
       }
-
-      @media (max-height: 560px) and (orientation: landscape) {
-        .auth-panel { padding: 1rem; align-items: flex-start; }
-        .auth-card {
-          padding: 1.25rem;
-          gap: 1rem;
-          margin: 0.5rem 0;
-        }
-        .auth-logo { margin-bottom: 0.5rem; }
-        .auth-logo img { max-height: 36px; }
-      }
     </style>
-
-    @if (!empty($app_settings->login_bg_color) && preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $app_settings->login_bg_color))
-    <style>
-      /* Admin-configured login background (Settings → Appearance → Login page) */
-      .auth-hero {
-        background: {{ $app_settings->login_bg_color }};
-      }
-    </style>
-    @endif
   </head>
 
   <body>
     <div class="auth-page">
-      <!-- HERO -->
-      <section class="auth-hero">
-        <div class="hero-bg-pattern"></div>
-        <div class="hero-shape hero-shape-1"></div>
-        <div class="hero-shape hero-shape-2"></div>
-        <div class="hero-shape hero-shape-3"></div>
-
-        <div class="hero-content">
-          <div class="hero-badge">
-            <span class="hero-badge-dot"></span>
-            {{ $app_settings->login_hero_badge ?? 'Secure & Reliable' }}
-          </div>
-
-          <h1 class="hero-title">{{ $app_settings->login_hero_title ?? 'Manage your business smarter.' }}</h1>
-          <p class="hero-subtitle">
-            {{ $app_settings->login_hero_subtitle ?? 'Streamline inventory, track sales, and grow your business — all from one powerful dashboard.' }}
-          </p>
-
-          <div class="hero-features">
-            @php
-              $features = [
-                $app_settings->login_hero_feature_1 ?? 'Real-time inventory tracking',
-                $app_settings->login_hero_feature_2 ?? 'Multi-location POS support',
-                $app_settings->login_hero_feature_3 ?? 'Advanced reporting & analytics',
-              ];
-            @endphp
-            @foreach ($features as $feature)
-              @if ($feature)
-              <div class="hero-feature">
-                <span class="hero-feature-icon">
-                  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                </span>
-                {{ $feature }}
-              </div>
-              @endif
-            @endforeach
-          </div>
-        </div>
-      </section>
-
-      <!-- FORM -->
       <section class="auth-panel">
-        <div class="auth-card">
-          <header class="auth-card-header">
-            <div class="auth-logo">
-              <img src="{{ asset('images/' . ($app_settings->logo ?? 'logo.png')) }}" alt="{{ $app_settings->app_name ?? 'Stocky' }}">
+        <div class="auth-brand">
+          <img src="{{ asset('images/' . ($app_settings->logo ?? 'logo.png')) }}" alt="{{ $app_settings->app_name ?? 'Stocky' }}">
+        </div>
+
+        <div class="auth-main">
+          <div class="mobile-hero">
+            <div class="hero-badge">
+              <span class="hero-badge-dot"></span>
+              {{ $app_settings->login_hero_badge ?? 'Secure & Reliable' }}
             </div>
-            <h2 class="auth-card-title">{{ $app_settings->login_panel_title ?? 'Welcome back' }}</h2>
-            <p class="auth-card-subtitle">
-              {{ $app_settings->login_panel_subtitle ?? 'Sign in to your account to continue' }}
-            </p>
+            <h2>{{ $app_settings->login_hero_title ?? 'Manage your business smarter.' }}</h2>
+            <p>{{ $app_settings->login_hero_subtitle ?? 'Streamline inventory, track sales, and grow your business — all from one powerful dashboard.' }}</p>
+          </div>
+
+          <header class="auth-heading">
+            <h1>{{ $app_settings->login_panel_title ?? 'Welcome back' }}</h1>
+            <p>{{ $app_settings->login_panel_subtitle ?? 'Sign in to your account to continue' }}</p>
           </header>
 
           @if (session('status'))
@@ -722,15 +622,72 @@
 
             <button type="submit" class="auth-btn" id="login_submit_btn">
               <span class="btn-text">{{ $app_settings->login_btn_text ?? 'Sign in' }}</span>
-              <svg class="btn-arrow btn-text" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              <svg class="btn-text" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               <span class="btn-loading"><span class="spinner"></span> Signing in...</span>
             </button>
           </form>
+        </div>
 
-          <div class="auth-footer">
-            {{ $app_settings->login_footer_text ?? '© ' . date('Y') . ' ' . ($app_settings->app_name ?? 'Stocky') . '. All rights reserved.' }}
+        <div class="auth-footer">
+          {{ $app_settings->login_footer_text ?? '© ' . date('Y') . ' ' . ($app_settings->app_name ?? 'Stocky') . '. All rights reserved.' }}
+        </div>
+      </section>
+
+      <section class="auth-hero" aria-hidden="false">
+        <div class="hero-copy">
+          <div class="hero-badge">
+            <span class="hero-badge-dot"></span>
+            {{ $app_settings->login_hero_badge ?? 'Secure & Reliable' }}
+          </div>
+          <h2 class="hero-title">{{ $app_settings->login_hero_title ?? 'Manage your business smarter.' }}</h2>
+          <p class="hero-subtitle">
+            {{ $app_settings->login_hero_subtitle ?? 'Streamline inventory, track sales, and grow your business — all from one powerful dashboard.' }}
+          </p>
+        </div>
+
+        <div class="preview" aria-hidden="true">
+          <div class="preview-bar">
+            <span class="preview-dot"></span>
+            <span class="preview-dot"></span>
+            <span class="preview-dot"></span>
+            <span>{{ $app_settings->app_name ?? 'Dashboard' }}</span>
+          </div>
+          <div class="preview-body">
+            <div class="preview-kpis">
+              <div class="kpi"><small>Today's sales</small><strong>48,250</strong><em>+12.4%</em></div>
+              <div class="kpi"><small>Stock on hand</small><strong>1,284</strong><em>18 low</em></div>
+              <div class="kpi"><small>Open invoices</small><strong>36</strong><em>3 overdue</em></div>
+            </div>
+            <div class="preview-chart">
+              <div class="bar" style="height:38%"></div>
+              <div class="bar" style="height:55%"></div>
+              <div class="bar" style="height:46%"></div>
+              <div class="bar" style="height:72%"></div>
+              <div class="bar" style="height:64%"></div>
+              <div class="bar" style="height:88%"></div>
+              <div class="bar" style="height:70%"></div>
+              <div class="bar" style="height:92%"></div>
+              <div class="bar" style="height:60%"></div>
+              <div class="bar" style="height:78%"></div>
+            </div>
+            <div class="preview-rows">
+              <div class="row"><i style="width:78%"></i><i style="width:42%"></i><i style="width:28%"></i></div>
+              <div class="row"><i style="width:64%"></i><i style="width:50%"></i><i style="width:22%"></i></div>
+              <div class="row"><i style="width:86%"></i><i style="width:36%"></i><i style="width:34%"></i></div>
+            </div>
           </div>
         </div>
+
+        @if (count($features))
+        <div class="hero-features">
+          @foreach ($features as $feature)
+            <span class="hero-feature">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              {{ $feature }}
+            </span>
+          @endforeach
+        </div>
+        @endif
       </section>
     </div>
 

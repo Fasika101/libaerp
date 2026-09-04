@@ -182,7 +182,7 @@ class PurchasesController extends BaseController
         }
 
         $suppliers = provider::where('deleted_at', '=', null)->get(['id', 'name']);
-        $accounts = Account::where('deleted_at', '=', null)->orderBy('id', 'desc')->get(['id', 'account_name']);
+        $accounts = Account::where('deleted_at', '=', null)->orderBy('id', 'desc')->get(['id', 'account_name', 'balance']);
 
         // get warehouses assigned to user
         $user_auth = auth()->user();

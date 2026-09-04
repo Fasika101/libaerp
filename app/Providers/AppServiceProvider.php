@@ -54,7 +54,14 @@ class AppServiceProvider extends ServiceProvider
             ];
 
             if (! in_array($firstSegment, $settingsExcluded)) {
-                $view->with('app_settings', Setting::first());
+                // Guests (login page, password reset) get the platform-level
+                // settings row (tenant_id NULL, managed in Platform → Site
+                // Settings); logged-in users get their own company's row.
+                $user = auth()->user();
+                $tenantId = $user
+                    ? ($user->is_super_admin ? $user->acting_tenant_id : $user->tenant_id)
+                    : null;
+                $view->with('app_settings', tenant_settings($tenantId) ?: Setting::first());
             }
 
             // Category data is only needed by the main application views; keep it

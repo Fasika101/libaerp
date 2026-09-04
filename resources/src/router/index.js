@@ -137,6 +137,7 @@ const ModuleSettings = lazy('ModuleSettings', () => import('../pages/settings/Mo
 const Modules = lazy('Modules', () => import('../pages/settings/Modules.vue'));
 const PlatformTenants = lazy('PlatformTenants', () => import('../pages/platform/Tenants.vue'));
 const PlatformTenantDetail = lazy('PlatformTenantDetail', () => import('../pages/platform/TenantDetail.vue'));
+const PlatformSiteSettings = lazy('PlatformSiteSettings', () => import('../pages/platform/SiteSettings.vue'));
 const UpdateSettings = lazy('UpdateSettings', () => import('../pages/settings/UpdateSettings.vue'));
 const SystemSettings = lazy('SystemSettings', () => import('../pages/settings/SystemSettings.vue'));
 const QuickBooksSync = lazy('QuickBooksSync', () => import('../pages/settings/QuickBooksSync.vue'));
@@ -383,6 +384,7 @@ const routes = [
             { path: 'dashboard', name: 'dashboard', component: Dashboard, meta: { title: 'Dashboard', permission: 'dashboard' } },
             { path: 'platform/tenants', name: 'platform-tenants', component: PlatformTenants, meta: { title: 'Companies', superAdmin: true } },
             { path: 'platform/tenants/:id', name: 'platform-tenant-detail', component: PlatformTenantDetail, meta: { title: 'Company', superAdmin: true } },
+            { path: 'platform/settings', name: 'platform-settings', component: PlatformSiteSettings, meta: { title: 'Site Settings', superAdmin: true } },
             { path: 'brands', name: 'brands', component: Brands, meta: { title: 'Brands', permission: 'brand' } },
             { path: 'categories', name: 'categories', component: Categories, meta: { title: 'Categories', permission: 'category' } },
             { path: 'subcategories', name: 'subcategories', component: SubCategories, meta: { title: 'SubCategories', permission: 'subcategory' } },
@@ -806,7 +808,9 @@ router.beforeEach(async to => {
     const auth = useAuthStore();
     await auth.load();
 
-    if (auth.isSuperAdmin && to.name === 'dashboard') {
+    // A super admin outside any company lands on the platform; once they
+    // "entered" a company the normal dashboard (its data) is the home page.
+    if (auth.isSuperAdmin && !auth.actingTenant && to.name === 'dashboard') {
         return { name: 'platform-tenants' };
     }
     if (to.meta.superAdmin && !auth.isSuperAdmin) {
